@@ -15,6 +15,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hypertrophy App - Progressive Overload Tracker",
   description: "Evidence-based progressive overload tracking for strength training and muscle growth",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Hypertrophy App"
+  }
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#0f172a"
 };
 
 export default function RootLayout({
