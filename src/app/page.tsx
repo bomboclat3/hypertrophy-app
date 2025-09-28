@@ -49,8 +49,11 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
 
 export default function GymTracker() {
   const { isSignedIn, user, isLoaded } = useUser();
-  const [lifts, setLifts] = useLocalStorage<Lift[]>(`gym-lifts-${user?.id || 'anonymous'}`, []);
-  const [workouts, setWorkouts] = useLocalStorage<WorkoutEntry[]>(`gym-workouts-${user?.id || 'anonymous'}`, []);
+  
+  // Create user-specific or anonymous storage keys
+  const storageKey = isSignedIn && user?.id ? user.id : 'anonymous';
+  const [lifts, setLifts] = useLocalStorage<Lift[]>(`gym-lifts-${storageKey}`, []);
+  const [workouts, setWorkouts] = useLocalStorage<WorkoutEntry[]>(`gym-workouts-${storageKey}`, []);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'log' | 'lifts' | 'history'>('dashboard');
   const [newLiftName, setNewLiftName] = useState('');
   const [selectedLiftId, setSelectedLiftId] = useState('');
@@ -205,8 +208,8 @@ export default function GymTracker() {
                 </div>
               ) : (
                 <SignInButton mode="modal">
-                  <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition-colors">
-                    Sign In
+                  <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition-colors flex items-center gap-1">
+                    <span>Sync Data</span>
                   </button>
                 </SignInButton>
               )}
@@ -240,6 +243,17 @@ export default function GymTracker() {
         </div>
       </nav>
       <main className="max-w-4xl mx-auto p-3 sm:p-4 space-y-4 sm:space-y-6 pb-20">
+        {!isSignedIn && workouts.length > 0 && (
+          <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <div>
+                <p className="text-blue-300 text-sm font-medium">Local Data Detected</p>
+                <p className="text-blue-200/80 text-xs">Sign in to sync your workouts across devices and never lose your progress!</p>
+              </div>
+            </div>
+          </div>
+        )}
         {activeTab === 'dashboard' && (
           <div className="space-y-4 sm:space-y-6">
             {(() => {
