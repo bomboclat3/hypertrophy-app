@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Plus, Trash2, Dumbbell, Calendar, TrendingUp, Home, Activity, Trophy, Target, BarChart3, ChevronUp, ChevronDown, Minus, LogOut } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Trash2, Dumbbell, Calendar, TrendingUp, Home, Activity, Trophy, Target, BarChart3, ChevronUp, ChevronDown, Minus, LogOut, Cloud } from 'lucide-react';
 import { useUser, SignInButton, SignOutButton } from '@clerk/nextjs';
+import { syncDataToCloud, loadDataFromCloud } from '../../lib/database';
 
 interface Lift {
   id: string;
@@ -61,6 +62,7 @@ export default function GymTracker() {
   const [reps, setReps] = useState('');
   const [sets, setSets] = useState('');
   const [difficulty, setDifficulty] = useState<1 | 2 | 3 | 4 | 5>(3);
+  const [issyncing, setIsSyncing] = useState(false);
 
   const addLift = () => {
     if (newLiftName.trim()) {
@@ -171,6 +173,53 @@ export default function GymTracker() {
       .slice(0, 5);
   };
 
+  // Cloud sync functions
+  const syncToCloud = useCallback(async () => {
+    if (!user?.id || issyncing) return
+    
+    setIsSyncing(true)
+    try {
+      await syncDataToCloud(lifts, workouts, user.id)
+    } catch (error) {
+      console.error('Sync failed:', error)
+    } finally {
+      setIsSyncing(false)
+    }
+  }, [user?.id, issyncing, lifts, workouts])
+
+  const loadFromCloud = useCallback(async () => {
+    if (!user?.id) return
+    
+    try {
+      const cloudData = await loadDataFromCloud(user.id)
+      
+      // Merge cloud data with local data (cloud takes precedence)
+      if (cloudData.lifts.length > 0 || cloudData.workouts.length > 0) {
+        setLifts(cloudData.lifts)
+        setWorkouts(cloudData.workouts)
+        
+        // Also update localStorage for this user
+        localStorage.setItem(`gym-lifts-${user.id}`, JSON.stringify(cloudData.lifts))
+        localStorage.setItem(`gym-workouts-${user.id}`, JSON.stringify(cloudData.workouts))
+      }
+    } catch (error) {
+      console.error('Load from cloud failed:', error)
+    }
+  }, [user?.id, setLifts, setWorkouts])
+
+  // Auto-sync when user signs in
+  useEffect(() => {
+    if (isSignedIn && user?.id && isLoaded) {
+      // Load data from cloud when user signs in
+      loadFromCloud()
+      
+      // Auto-sync local data to cloud
+      if (lifts.length > 0 || workouts.length > 0) {
+        syncToCloud()
+      }
+    }
+  }, [isSignedIn, user?.id, isLoaded, loadFromCloud, syncToCloud, lifts.length, workouts.length])
+
   if (!isLoaded) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
@@ -197,6 +246,14 @@ export default function GymTracker() {
             <div className="flex items-center gap-3">
               {isSignedIn ? (
                 <div className="flex items-center gap-3">
+                  <button 
+                    onClick={syncToCloud}
+                    disabled={issyncing}
+                    className="flex items-center gap-1 text-xs sm:text-sm text-slate-400 hover:text-slate-200 transition-colors disabled:opacity-50"
+                  >
+                    <Cloud size={14} className={issyncing ? 'animate-pulse' : ''} />
+                    {issyncing ? 'Syncing...' : 'Sync'}
+                  </button>
                   <span className="text-xs sm:text-sm text-slate-400">
                     {user?.firstName || user?.emailAddresses[0]?.emailAddress}
                   </span>
@@ -209,6 +266,7 @@ export default function GymTracker() {
               ) : (
                 <SignInButton mode="modal">
                   <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition-colors flex items-center gap-1">
+                    <Cloud size={14} />
                     <span>Sync Data</span>
                   </button>
                 </SignInButton>
