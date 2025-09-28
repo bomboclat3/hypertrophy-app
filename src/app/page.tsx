@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Dumbbell, Calendar, TrendingUp, Home, Activity, Trophy, Target, BarChart3, ChevronUp, ChevronDown, Minus } from 'lucide-react';
+import { Plus, Trash2, Dumbbell, Calendar, TrendingUp, Home, Activity, Trophy, Target, BarChart3, ChevronUp, ChevronDown, Minus, LogOut } from 'lucide-react';
+import { useUser, SignInButton, SignOutButton } from '@clerk/nextjs';
 
 interface Lift {
   id: string;
@@ -47,8 +48,9 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => voi
 }
 
 export default function GymTracker() {
-  const [lifts, setLifts] = useLocalStorage<Lift[]>('gym-lifts', []);
-  const [workouts, setWorkouts] = useLocalStorage<WorkoutEntry[]>('gym-workouts', []);
+  const { isSignedIn, user, isLoaded } = useUser();
+  const [lifts, setLifts] = useLocalStorage<Lift[]>(`gym-lifts-${user?.id || 'anonymous'}`, []);
+  const [workouts, setWorkouts] = useLocalStorage<WorkoutEntry[]>(`gym-workouts-${user?.id || 'anonymous'}`, []);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'log' | 'lifts' | 'history'>('dashboard');
   const [newLiftName, setNewLiftName] = useState('');
   const [selectedLiftId, setSelectedLiftId] = useState('');
@@ -166,15 +168,50 @@ export default function GymTracker() {
       .slice(0, 5);
   };
 
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <TrendingUp className="text-emerald-400 animate-pulse mx-auto" size={48} />
+          <p className="text-slate-400 mt-2">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-2">
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-            <TrendingUp className="text-emerald-400" size={20} />
-            <span className="truncate">Hypertrophy App</span>
-          </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-1">Evidence-based progressive overload tracking</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <TrendingUp className="text-emerald-400" size={20} />
+                <span className="truncate">Hypertrophy App</span>
+              </h1>
+              <p className="text-slate-400 text-xs sm:text-sm mt-1">Evidence-based progressive overload tracking</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {isSignedIn ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs sm:text-sm text-slate-400">
+                    {user?.firstName || user?.emailAddresses[0]?.emailAddress}
+                  </span>
+                  <SignOutButton>
+                    <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
+                      <LogOut size={16} className="text-slate-400" />
+                    </button>
+                  </SignOutButton>
+                </div>
+              ) : (
+                <SignInButton mode="modal">
+                  <button className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm px-3 py-2 rounded-lg transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+              )}
+            </div>
+          </div>
         </div>
       </header>
       <nav className="bg-slate-900 border-b border-slate-800 sticky top-16 z-10">
