@@ -26,7 +26,7 @@ A modern, responsive web application for tracking progressive overload in streng
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/[username]/hypertrophy-app.git
+git clone https://github.com/bomboclat3/hypertrophy-app.git
 cd hypertrophy-app
 ```
 
