@@ -13,7 +13,7 @@ A modern, responsive web application for tracking progressive overload in streng
 
 ## Live Demo
 
-[View Live App](https://hypertrophy-tracker.vercel.app)
+[View Live App](https://hypertrophy-app-puce.vercel.app/)
 
 ## Getting Started
 
